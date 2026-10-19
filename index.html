@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>俊丹的拉各斯七日</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap">
+<style>
+/* 布局：单列"夜班仓库"舞台。顶部状态条，中间一张大卡（选项/结果/结算），底部七日日记。刻意单一深色街机风，不跟随浅色主题 */
+:root{
+  --night:#141a2b; --panel:#1c2740; --panel-2:#22314f; --edge:#2f4266;
+  --teal:#3fd0c9; --gold:#f2c14e; --rose:#ff7aa2; --leaf:#57c27a; --sky:#7fb2ff;
+  --ink:#f3ecd8; --mute:#9aa6bd;
+  --display:"ZCOOL QingKe HuangYou","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  --body:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--night);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.6;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 28px;
+  background-image:radial-gradient(ellipse at 50% -10%,rgba(63,208,201,.12),transparent 60%)}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;background:var(--panel);border:2px solid var(--edge);border-radius:8px;padding:10px 14px}
+.brand{font-family:var(--display);font-size:20px;color:var(--gold);letter-spacing:.04em;line-height:1.1}
+.brand small{display:block;font-family:var(--body);font-size:11px;color:var(--mute);letter-spacing:.08em}
+.days{display:flex;gap:4px;align-items:center}
+.days i{width:12px;height:12px;border:2px solid var(--edge);border-radius:2px;display:block}
+.days i.done{background:var(--teal);border-color:var(--teal)}
+.days i.now{border-color:var(--gold);box-shadow:0 0 0 2px rgba(242,193,78,.25)}
+.meters{display:flex;gap:14px;margin-left:auto;flex-wrap:wrap}
+.meter{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+.meter b{font-family:var(--display);font-weight:400;font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums;min-width:1ch}
+.meter .dot{width:10px;height:10px;border-radius:2px}
+.stage{background:var(--panel);border:2px solid var(--edge);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--teal)}
+h1,h2{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:clamp(30px,7vw,46px);color:var(--gold)}
+h2{font-size:clamp(24px,5vw,32px)}
+p{margin:0;max-width:62ch}
+.lead{color:var(--mute)}
+canvas.scene{display:block;width:100%;max-width:100%;aspect-ratio:16/9;image-rendering:pixelated;image-rendering:crisp-edges;border-radius:6px;border:2px solid var(--edge);background:#0e1322}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.cards{grid-template-columns:minmax(0,1fr)}}
+.choice{position:relative;display:flex;flex-direction:column;gap:8px;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  background:linear-gradient(180deg,var(--panel-2),#192338);border:2px solid var(--edge);border-radius:8px;padding:10px;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .25s ease;animation:deal .45s ease both}
+.choice:nth-child(2){animation-delay:.08s}.choice:nth-child(3){animation-delay:.16s}
+.choice:hover,.choice:focus-visible{transform:translateY(-4px);border-color:var(--teal);box-shadow:0 0 0 1px var(--teal),0 8px 24px rgba(63,208,201,.18);outline:none}
+.choice .no{position:absolute;top:8px;left:8px;width:22px;height:22px;display:grid;place-items:center;background:var(--gold);color:#2a2100;font-family:var(--display);font-size:15px;border-radius:3px}
+.choice canvas{width:100%;aspect-ratio:16/9;image-rendering:pixelated;background:#101829;border-radius:4px;border:1px solid var(--edge)}
+.choice .t{font-family:var(--display);font-size:22px;color:var(--gold);line-height:1.15}
+.choice .d{font-size:13px;color:var(--mute);line-height:1.45}
+.choice.abs .t{color:var(--rose)}
+.choice.slack .t{color:var(--sky)}
+.choice .txt{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cards.picked .choice{opacity:.25;transform:scale(.97)}
+.cards.picked .choice.on{opacity:1;transform:scale(1.02);border-color:var(--gold)}
+@keyframes deal{from{opacity:0;transform:translateY(14px) rotate(-1.5deg)}to{opacity:1;transform:none}}
+.result{display:flex;flex-direction:column;gap:12px;animation:rise .4s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tagrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tag{font-size:12px;padding:2px 8px;border-radius:3px;font-weight:600;white-space:nowrap}
+.tag.wh{background:rgba(87,194,122,.18);color:var(--leaf)}
+.tag.slack{background:rgba(127,178,255,.18);color:var(--sky)}
+.tag.abs{background:rgba(255,122,162,.18);color:var(--rose)}
+.btn{align-self:flex-start;font-family:var(--display);font-size:20px;background:var(--gold);color:#2a2100;border:0;border-radius:6px;padding:8px 20px;cursor:pointer;box-shadow:0 4px 0 #a37a1c;transition:transform .1s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #a37a1c}
+.btn:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.title-badge{display:inline-flex;flex-direction:column;gap:2px;align-self:flex-start;border:3px solid var(--gold);border-radius:6px;padding:8px 16px;background:#2a2410;animation:pop .6s ease both}
+.title-badge span{font-size:12px;letter-spacing:.14em;color:var(--mute)}
+.title-badge b{font-family:var(--display);font-weight:400;font-size:clamp(30px,7vw,44px);color:var(--gold);line-height:1.1}
+.title-badge.abs{border-color:var(--rose);background:#2d1626}.title-badge.abs b{color:var(--rose)}
+.title-badge.slack{border-color:var(--sky);background:#16223a}.title-badge.slack b{color:var(--sky)}
+@keyframes pop{0%{opacity:0;transform:scale(.8) rotate(-3deg)}70%{transform:scale(1.04) rotate(1deg)}100%{opacity:1;transform:none}}
+.bars{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:13px}
+.bars .track{height:10px;background:#101829;border-radius:3px;overflow:hidden;border:1px solid var(--edge)}
+.bars .track i{display:block;height:100%}
+.bars em{font-style:normal;font-family:var(--display);font-size:17px;font-variant-numeric:tabular-nums}
+.diary{background:var(--panel);border:2px solid var(--edge);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.diary h3{margin:0 0 2px;font-family:var(--display);font-weight:400;font-size:20px;color:var(--gold);display:flex;justify-content:space-between;align-items:baseline}
+.diary h3 small{font-family:var(--body);font-size:12px;color:var(--mute)}
+.diary ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.diary li{display:grid;grid-template-columns:4.2em auto minmax(0,1fr);gap:4px 10px;align-items:baseline;padding:7px 0;border-top:1px dashed var(--edge);font-size:14px}
+.diary li:first-child{border-top:0}
+.diary .dn{font-family:var(--display);font-size:16px;color:var(--mute);font-variant-numeric:tabular-nums}
+.diary .tx{min-width:0}
+.diary .tx b{font-weight:600}
+.diary .tx span{color:var(--mute)}
+.diary li.todo .tx{color:var(--mute)}
+.diary li.now .dn{color:var(--gold)}
+.wei{display:flex;gap:12px;align-items:center;background:#1a2236;border:2px dashed var(--sky);border-radius:8px;padding:8px 12px;animation:rise .4s .25s ease both}
+.wei canvas{width:40px;height:60px;image-rendering:pixelated;flex:none;background:#101829;border-radius:4px}
+.wei div{min-width:0;font-size:14px}
+.wei b{font-family:var(--display);font-weight:400;font-size:18px;color:var(--sky);display:block;line-height:1.2}
+.foot{font-size:12px;color:var(--mute);text-align:center}
+.diary summary{list-style:none;cursor:pointer}
+.diary summary::-webkit-details-marker{display:none}
+.diary:not([open]) h3 small::after{content:' · 点开看'}
+@media (max-width:560px){
+  body{padding-block:8px 16px;font-size:14px;line-height:1.55}
+  .wrap{gap:10px}
+  .hud{padding:8px 10px;gap:6px 12px}
+  .brand{font-size:17px}.brand small{display:none}
+  .meters{gap:10px;margin-left:0}
+  .stage{padding:12px;gap:10px}
+  h1{font-size:28px}h2{font-size:22px}
+  .cards{gap:8px}
+  .choice{flex-direction:row;align-items:center;padding:8px;gap:10px}
+  .choice canvas{width:96px;flex:none}
+  .choice .no{top:4px;left:4px;width:18px;height:18px;font-size:12px}
+  .choice .t{font-size:18px}.choice .d{font-size:12px}.choice .txt{gap:2px}
+  .choice:hover,.choice:focus-visible{transform:none}
+  .wei{padding:6px 10px}.wei canvas{width:30px;height:45px}
+  .btn{align-self:stretch;text-align:center}
+  .diary{padding:8px 12px}.diary li{font-size:13px;padding:6px 0}
+  .foot{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<main class="wrap">
+  <header class="hud" aria-label="游戏状态">
+    <div class="brand">拉各斯七日<small>传音 · 尼日利亚仓</small></div>
+    <div class="days" id="days" aria-label="天数进度"></div>
+    <div class="meters">
+      <span class="meter"><i class="dot" style="background:var(--leaf)"></i>仓库<b id="mWh">0</b></span>
+      <span class="meter"><i class="dot" style="background:var(--sky)"></i>摸鱼<b id="mSl">0</b></span>
+      <span class="meter"><i class="dot" style="background:var(--rose)"></i>腹肌<b id="mAb">0</b></span>
+    </div>
+  </header>
+  <section class="stage" id="stage" aria-live="polite"></section>
+  <details class="diary" id="diaryBox" open>
+    <summary><h3>七日日记 <small id="diaryCount">0/7</small></h3></summary>
+    <ol id="diary"></ol>
+  </details>
+  <p class="foot">小仓大梦 · 番外篇。纯属虚构，如有雷同，那一定是腹肌太显眼。</p>
+</main>
+
+<script>
+(()=>{
+/* ---------- 剧本 ---------- */
+const GUYS={
+  Emeka:{skin:'#6b3f2a',hair:'#111',top:'#f2c14e'},Tunde:{skin:'#5a3322',hair:'#111',top:'#3fd0c9'},Chidi:{skin:'#7a4a30',hair:'#111',top:'#ffffff'},
+  Femi:{skin:'#8a5a3c',hair:'#111',top:'#57c27a'},Obi:{skin:'#603820',hair:'#111',top:'#9b7bff'},Segun:{skin:'#704428',hair:'#111',top:'#ff9f43'},
+  Luca:{skin:'#e3b48c',hair:'#4a2e1a',top:'#e85d75'},Mateo:{skin:'#c48a5a',hair:'#1f140c',top:'#ffd23f'},Pierre:{skin:'#f0c8a8',hair:'#6b4a2a',top:'#2b3550'},
+  Jake:{skin:'#e8b890',hair:'#e8c45a',top:'#3fd0c9'},Lars:{skin:'#f5d2b8',hair:'#f2e2a0',top:'#7fb2ff'},
+};
+const CROWD=(()=>{const sk=['#6b3f2a','#e3b48c','#5a3322','#f0c8a8','#c48a5a','#4e2c1e','#e8b890','#7a4a30','#f5d2b8'],hr=['#111','#4a2e1a','#111','#6b4a2a','#1f140c','#111','#e8c45a','#111','#f2e2a0'],tp=['#f2c14e','#e85d75','#3fd0c9','#9b7bff','#57c27a','#ff9f43','#ffffff','#7fb2ff','#ff7aa2'];
+  return Array.from({length:18},(_,i)=>{const j=(i*5)%9;return {skin:sk[j],hair:hr[j],top:tp[(i*4)%9],abs:true,pants:'#1e2433'}})})();
+const DAYS=[
+ {when:'周一 · 入职第一天',opts:[
+  {k:'wh',t:'看看货到了没',d:'系统显示柜子到港三天了，仓库说没见到',bg:'office',s:'追到卡在清关的柜子，港口官员说要给你铺面资源',
+   r:'你打开系统一查，柜子到港三天了，清关卡在一张单证上。你给货代打了四个电话，下午柜子终于提出来了。帮忙打招呼的港口官员听说你想开云南菌子餐厅，说可以给你介绍维多利亚岛的铺面资源。伟子哥松了口气：“艺术家来了就是不一样。”'},
+  {k:'slack',t:'去泻湖钓鱼',d:'同事说周一的鱼最好钓',bg:'lagoon',s:'钓到一条罗非鱼和一只拖鞋',
+   r:'你在拉各斯泻湖的码头坐了一上午，钓上来一条巴掌大的罗非鱼和一只拖鞋。旁边的渔夫大叔笑了半天，送了你一条大的，还教你怎么挑鱼饵。你顺手问了问当地鱼的批发价，记进了菌子餐厅的供应商名单。'},
+  {k:'abs',t:'去维多利亚岛夜店',d:'入职第一晚，必须见见世面',bg:'club',cast:['Emeka','Luca'],s:'左手 Emeka，右手意大利帅哥 Luca',
+   r:'灯光一暗，Afrobeats 一响，Emeka 从人群里挤过来请你跳舞，衬衫只扣了一颗扣子。下一首歌，来度假的意大利帅哥 Luca 也凑了过来。两个人一左一右，你哪个都没拒绝，左拥右抱跳到凌晨三点。'}]},
+ {when:'周二 · 到货日',opts:[
+  {k:'wh',t:'对到货数据',d:'供应商说发了 500 件，系统里只入库了 463',bg:'office',s:'对出 37 件入错了 SKU',
+   r:'你把装箱单、入库单和系统数据拉成一张表，一行行对，发现 37 件被入到了另一个 SKU 下面。你把差异标红发到群里，第一次觉得自己像个数据侦探。'},
+  {k:'slack',t:'飞去肯尼亚看动物',d:'马赛马拉，正赶上角马过河',bg:'kenya',s:'看角马过河，顺便聊出菌子餐厅的投资意向',
+   r:'你坐在越野车上，看着几万头角马冲过马拉河。同车一个做矿产生意的五十多岁老板一路跟你聊商业，说很看好你的云南菌子餐厅。你从菌子的冷链运输讲到东非的物流成本，他听得连连点头，下车时说回去就让助理联系你。一只长颈鹿在旁边看着，它的眼神和伟子哥很像。'},
+  {k:'abs',t:'去酒吧听现场',d:'今晚有乐队，听说主唱很帅',bg:'bar',cast:['Tunde','Mateo'],s:'主唱 Tunde 和巴西人 Mateo 抢着请你喝酒',
+   r:'Tunde 唱完一首情歌，走下台坐到你左边，说难怪今晚的月亮这么亮。你右边早就坐着一个来冲浪的巴西人 Mateo，晒得黝黑，笑起来有酒窝。两个人为了谁请你喝酒差点吵起来，最后你两杯都喝了。'}]},
+ {when:'周三 · 又停电了',opts:[
+  {k:'wh',t:'停电也要看库龄',d:'整个片区停电，你开着手机热点跑报表',bg:'night',s:'翻出 800 个库龄超 180 天的手机壳',
+   r:'你用手机热点连上系统，跑出一份库龄报表：有 800 个手机壳放了超过 180 天。你把它们全标成呆滞，准备找业务算账。'},
+  {k:'slack',t:'去红海潜水',d:'反正停电，不如去埃及看珊瑚',bg:'redsea',s:'在红海潜水，会议邀请全没回',
+   r:'你在红海里跟着一群小丑鱼游了一下午，珊瑚的颜色比任何滤镜都夸张。上岸一看手机，有三个会议邀请你一个都没回。'},
+  {k:'abs',t:'约会软件第一次见面',d:'他的主页写着：健身教练，会做饭',bg:'date',cast:['Chidi'],s:'和健身教练 Chidi 约会',
+   r:'Chidi 本人比照片还好看，而且真的会做饭。他端出一锅非洲辣椒汤，紧张地问你辣不辣。你喝了一口说还行，从包里掏出一袋重庆火锅底料加了进去。Chidi 被辣得眼泪直流，脱掉了外套，你借着递纸巾多看了好几眼他的手臂。'}]},
+ {when:'周四 · 盘点日',opts:[
+  {k:'wh',t:'盘点库存',d:'系统说有 3000 瓶钙片，货架上好像没有',bg:'warehouse',s:'在销售老大的私人 SKU 里找到 3000 瓶钙片',
+   r:'你翻遍 A 区到 F 区，最后在销售老大的私人库位里找到了那 3000 瓶。原来他自己单独建了一个 SKU。你深吸一口气，什么也没说。'},
+  {k:'slack',t:'溜去巴黎',d:'从拉各斯飞过去，一觉就到了',bg:'paris',s:'在埃菲尔铁塔下吃可颂',
+   r:'你在埃菲尔铁塔下面吃了一个可颂，拍了两百张照片。旁边咖啡馆的拿铁一般，还不如你自己咖啡厅的员工 Kemi 做的。邻桌一个做连锁餐饮的法国老头跟你聊了一下午加盟模式，你顺势推销了一下云南菌子，他说巴黎也该有一家，两个人交换了名片。仓库群里有人在找钙片，你决定先不回。'},
+  {k:'abs',t:'屋顶酒吧看夜景',d:'酒店里遇到的法国摄影师说他知道全城最好的露台',bg:'rooftop',cast:['Pierre'],s:'被法国摄影师 Pierre 拍了一整晚',
+   r:'Pierre 是来非洲旅行的法国摄影师。他带你上了天台，整个拉各斯的灯光都在脚下，他说你是他这一路拍到最好看的风景。这句话很油，但他脱掉外套以后，腹肌一点都不油。'}]},
+ {when:'周五 · 清尾日',opts:[
+  {k:'wh',t:'联系业务清尾货',d:'呆滞的 800 个手机壳，得有人认领',bg:'office',s:'逼业务认领了 800 个呆滞手机壳',
+   r:'你把呆滞清单发给东非和西非的业务，一个说不是他的货，一个说下个月就卖。你直接拉了个群，把采购单号甩了出来。下班前两个人都认了，答应打折清掉。'},
+  {k:'slack',t:'去意大利吃披萨',d:'罗马斗兽场，外加正宗披萨',bg:'italy',s:'在罗马吃了三块披萨两个冰淇淋',
+   r:'你站在斗兽场前面想象当年的角斗士，然后吃了三块披萨和两个冰淇淋。回酒店的路上，你觉得自己就是《罗马假日》的女主角。'},
+  {k:'abs',t:'在家开 party',d:'煮一锅云南菌子火锅，把周围的帅哥美女都叫来',bg:'party',cast:['Femi','Jake'],s:'在家煮菌子火锅，Femi 和 Jake 一左一右',
+   r:'你煮了一锅云南菌子火锅，红油翻滚。Femi 带着吉他来了，澳洲背包客 Jake 光着膀子帮你端锅。吃到一半，Jake 指着天花板说看到了好多小人在跳舞。你说那是见手青没煮熟，他说那也挺好，然后搂着你一起跳了起来。'}]},
+ {when:'周六 · 大促前夜',opts:[
+  {k:'wh',t:'大促备货',d:'下周大促，东非西非都在要货',bg:'office',s:'做出伟子哥见过最清楚的备货表',
+   r:'你按两边的销量预测分配库存，肯尼亚多给一点，尼日利亚留好安全库存。伟子哥盯着你的表格看了半天，说这是他见过最清楚的备货表。'},
+  {k:'slack',t:'出海钓大鱼',d:'船长说今天能钓到旗鱼',bg:'seafish',s:'和一条旗鱼搏斗了四十分钟',
+   r:'你和一条旗鱼搏斗了四十分钟，手臂酸得抬不起来，最后它还是挣脱了。船长安慰你：跑掉的鱼才是最大的。你觉得很有道理。'},
+  {k:'abs',t:'夜店男模之夜',d:'Obi 说今晚有 18 个男模，正中间给你留了位置',bg:'club',cast:['Obi','Lars'],crowd:true,s:'18 个男模之夜，C 位是你',
+   r:'灯一亮，台上站着 18 个男模，本地的、欧洲的、南美的都有。舞者 Obi 把你拉到正中间，左边是他，右边是来度假的瑞典男大 Lars，一人搂着你一边肩膀。全场都在尖叫，你分不清大家是在为他们尖叫，还是在为你。'}]},
+ {when:'周日 · 最后一天',opts:[
+  {k:'wh',t:'盯大促发货数据',d:'3 万单要出库，你守着看板',bg:'office',s:'守着看板，东西非大促全部按时出库',
+   r:'你盯着看板一整天，哪个仓卡住了就打电话过去。东非西非的单子全部按时出库，错单比平时少了一半。深夜收工时，整个物流部给你鼓掌。'},
+  {k:'slack',t:'去金字塔转一圈',d:'回国在开罗转机，顺路',bg:'egypt',s:'骑骆驼绕了金字塔一圈',
+   r:'你骑着骆驼绕了金字塔一圈，骆驼一直想吃你的草帽。你在狮身人面像前拍了最后一张出差照，配文：好好工作。'},
+  {k:'abs',t:'告别派对',d:'有人说要给你一个惊喜',bg:'club',cast:['Emeka','Luca'],crowd:true,s:'这七天认识的帅哥全来送行',
+   r:'你推开包厢的门，这七天认识的人全来了：Emeka 和 Luca、Tunde 和 Mateo、Chidi、Pierre、Femi 和 Jake、Obi 和 Lars，后面还站着一排男模。一个你没见过的 Segun 抱着一束花走过来，说他是大家的朋友。你忽然明白了这七天都发生了什么。'}]},
+];
+const WEI=[
+ {wh:'伟子哥趁你在打电话，把你桌上的零食吃了一半，吃完还问你下午茶点什么。',slack:'伟子哥在群里发了三条 60 秒语音问你去哪了，最后一条带着哭腔。',abs:'第二天早上伟子哥问你昨晚去哪了，你说在加班。他信了，还给你点了一杯咖啡。'},
+ {wh:'伟子哥非要帮你对数，对到第 30 行就说眼睛酸，在旁边玩了一下午手机。',slack:'你发了长颈鹿的照片，伟子哥评论：为什么不带我。然后在工位上生了一下午闷气。',abs:'伟子哥听说你去了酒吧，嚷嚷着下次也要去，结果晚上九点就困了。'},
+ {wh:'停电的时候伟子哥躲在办公室喊“我怕黑”，发电机一响，他第一个冲出来邀功。',slack:'伟子哥的三个会议你都没来，他在群里说再也不跟你好了。十分钟后，他又来问你红海好不好玩。',abs:'约会到一半，伟子哥打来视频，问你 Excel 的筛选按钮在哪。Chidi 凑过来教会了他，伟子哥挂电话前说：“这个人可以。”'},
+ {wh:'你找到钙片以后，伟子哥说“我早就知道在那儿”，然后被你瞪得不敢说话。',slack:'伟子哥让你带个可颂回来。你带回来时他已经泡了碗面，说不要了，然后全吃了。',abs:'伟子哥问屋顶酒吧在哪，你说忘了。他在工作群里发了一个大哭的表情包。'},
+ {wh:'伟子哥被拉进群里，发的第一句话是：“这个群是干嘛的？”',slack:'伟子哥看到你的披萨照片，自己点了一份外卖披萨，等了三个小时，送来是凉的。',abs:'伟子哥不请自来，一个人吃了三碗菌子，然后抱着你家沙发喊妈妈。'},
+ {wh:'伟子哥接着问的第一句话是：“我能不能周日休息？”',slack:'伟子哥问你钓到什么了，你说跑了。他笑了整整五分钟，第二天还在笑。',abs:'伟子哥在 VIP 卡座门口被保安拦住了，因为他穿了一双拖鞋。'},
+ {wh:'收工时伟子哥抱着你哭，说你走了以后谁帮他干活。',slack:'伟子哥发来一条消息：“你走了谁陪我吃饭？”配了一张他一个人吃饭的自拍。',abs:'伟子哥也来了派对，在角落里吃完了一整盘蛋糕，谁也没理他，他很满意。'},
+];
+const KIND={wh:{label:'仓库',cls:'wh',col:'leaf'},slack:{label:'摸鱼',cls:'slack',col:'sky'},abs:{label:'腹肌',cls:'abs',col:'rose'}};
+
+/* ---------- 状态 ---------- */
+let S=fresh();
+function fresh(){return {phase:'title',day:0,picks:[],stats:{wh:0,slack:0,abs:0}}}
+try{const h=window.claude?.hot;if(h&&h.data&&h.data.phase&&!h.data.guys)S=h.data;h&&h.snapshot&&h.snapshot(()=>S)}catch(e){}
+
+/* ---------- 像素画 ---------- */
+const JUN={skin:'#f1c9a5',hair:'#1a1210',longHair:true,top:'#e85d75',pants:'#2b3550'};
+function guyLook(n){const g=GUYS[n];return {skin:g.skin,hair:g.hair,abs:true,top:g.top,pants:'#1e2433'}}
+function px(c){return (x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),w,h)}}
+function person(c,x,y,o){
+  const R=(a,b,w,h,col)=>{c.fillStyle=col;c.fillRect(x+a,y+b,w,h)};
+  const sk=o.skin,hr=o.hair||'#1a1210',pants=o.pants||'#2b3550';
+  R(4,21,3,8,pants);R(8,21,3,8,pants);R(3,28,4,2,'#151515');R(8,28,4,2,'#151515');
+  if(o.dress){R(2,11,11,13,o.dress);R(2,22,11,2,o.dress2||o.dress)}
+  else if(o.abs){R(3,11,9,10,sk);R(3,11,9,3,o.top);const d='rgba(0,0,0,.32)';for(let i=0;i<3;i++){R(4,15+i*2,2,1,d);R(9,15+i*2,2,1,d)}R(7,15,1,5,d)}
+  else R(3,11,9,10,o.top||'#3fd0c9');
+  const arm=(o.dress||o.abs)?sk:(o.top||'#3fd0c9');
+  if(o.hug){R(-3,12,6,2,sk);R(12,12,6,2,sk)}
+  else if(o.reachR){R(1,11,2,8,arm);R(1,18,2,2,sk);R(12,12,6,2,sk)}
+  else if(o.reachL){R(-3,12,6,2,sk);R(12,11,2,8,arm);R(12,18,2,2,sk)}
+  else if(o.flex){R(-1,11,4,2,sk);R(-1,7,2,5,sk);R(12,11,4,2,sk);R(14,7,2,5,sk)}
+  else if(o.wave){R(1,11,2,8,arm);R(1,18,2,2,sk);R(12,11,4,2,sk);R(14,6,2,6,sk)}
+  else{R(1,11,2,8,arm);R(12,11,2,8,arm);R(1,18,2,2,sk);R(12,18,2,2,sk)}
+  R(4,2,7,8,sk);R(4,1,7,3,hr);
+  if(o.longHair){R(3,2,2,12,hr);R(10,2,2,12,hr)}else{R(3,2,1,3,hr);R(11,2,1,3,hr)}
+  if(o.shades)R(5,5,6,2,'#0d0d0d');else if(o.mask){R(4,4,7,4,'#7fdcff');R(4,4,7,1,'#2b3550')}else{R(6,6,1,1,'#151515');R(9,6,1,1,'#151515')}
+  if(o.blush){R(5,8,1,1,'#ff7aa2');R(10,8,1,1,'#ff7aa2')}
+  R(7,8,2,1,'#8a2c3a');
+  if(o.crown){R(4,-2,7,2,'#f2c14e');R(4,-4,1,2,'#f2c14e');R(7,-5,1,3,'#f2c14e');R(10,-4,1,2,'#f2c14e');R(7,-2,1,1,'#e85d75')}
+  if(o.hat){R(2,0,11,2,o.hat);R(4,-2,7,2,o.hat)}
+  if(o.chubby){R(2,13,11,7,o.top);R(5,15,5,3,'rgba(255,255,255,.18)')}
+  if(o.paci){R(6,8,4,2,'#ff7aa2');R(7,10,2,1,'#f2c14e')}
+}
+const WEIZI={skin:'#f1c9a5',hair:'#1a1210',top:'#7fb2ff',pants:'#3a3f52',chubby:true,paci:true};
+function drawWei(cv){cv.width=20;cv.height=30;const c=cv.getContext('2d');c.imageSmoothingEnabled=false;person(c,2,0,WEIZI)}
+function heart(c,x,y,col='#ff7aa2'){const R=px(c);['.X.X.','XXXXX','XXXXX','.XXX.','..X..'].forEach((row,j)=>[...row].forEach((ch,i)=>{if(ch==='X')R(x+i,y+j,1,1,col)}))}
+function trio(c,a,b,crown){person(c,56,34,{...guyLook(a),reachR:true});person(c,88,34,{...guyLook(b),reachL:true});person(c,72,33,{...JUN,dress:'#e85d75',dress2:'#c23d5a',hug:true,blush:true,crown});heart(c,64,22);heart(c,90,18,'#ffb3c9');heart(c,77,14)}
+function crowd(c){CROWD.forEach((g,i)=>{const row=i<9?0:1,k=i%9;person(c,(row?10:2)+k*17,row?18:6,{...g,flex:i%3===0})})}
+function box(c,x,y,w=8,h=6,col='#c08552'){const R=px(c);R(x,y,w,h,col);R(x,y+2,w,1,'#e9c46a');R(x,y,w,1,'rgba(255,255,255,.18)')}
+function line(c,x1,y1,x2,y2,col){c.strokeStyle=col;c.lineWidth=1;c.beginPath();c.moveTo(x1+.5,y1+.5);c.lineTo(x2+.5,y2+.5);c.stroke()}
+function stars(c,n,h){const R=px(c);for(let i=0;i<n;i++)R((i*37+11)%160,(i*13+3)%h,1,1,i%3?'#f3ecd8':'#f2c14e')}
+function bands(c,cols,h){const R=px(c);const bh=Math.ceil(h/cols.length);cols.forEach((s,i)=>R(0,i*bh,160,bh,s))}
+
+const BG={
+  warehouse(c){const R=px(c);R(0,0,160,62,'#3b4560');R(0,62,160,28,'#7d6d58');for(let x=0;x<160;x+=16)R(x,62,1,28,'#6c5e4c');R(0,62,160,1,'#a08d70');
+    for(const sx of [8,30,118,140]){R(sx,18,18,44,'#8a5a2b');for(let j=0;j<4;j++){R(sx,22+j*11,18,2,'#5e3c1c');for(let i=0;i<3;i++)R(sx+2+i*5,16+j*11,4,5,['#3fd0c9','#f2c14e','#e85d75','#57c27a','#9b7bff'][(i+j+sx)%5])}}
+    R(0,6,160,4,'#f2c14e');for(let x=0;x<160;x+=10)R(x,6,5,4,'#1c2433');
+    box(c,60,54,10,8);box(c,71,54,10,8);box(c,65,46,10,8)},
+  night(c){const R=px(c);R(0,0,160,90,'#0d1120');R(0,62,160,28,'#1a1f30');stars(c,14,40);
+    c.fillStyle='rgba(242,193,78,.18)';c.beginPath();c.arc(56,46,30,0,7);c.fill();R(40,44,34,18,'#3a4560');R(40,44,34,3,'#57c27a');R(44,50,8,8,'#1c2433');R(64,50,6,6,'#f2c14e');R(72,36,3,10,'#555')},
+  club(c){const R=px(c);R(0,0,160,90,'#1a0f2e');const tiles=['#ff7aa2','#3fd0c9','#f2c14e','#9b7bff'];for(let y=62;y<90;y+=7)for(let x=0;x<160;x+=10)R(x,y,9,6,tiles[((x/10)+(y-62)/7)%4|0]+'');
+    c.globalAlpha=.35;[[80,0,10,70,'#ff7aa2'],[80,0,140,70,'#3fd0c9'],[80,0,40,80,'#9b7bff'],[80,0,120,80,'#f2c14e']].forEach(([a,b,x,y,col])=>{c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.moveTo(a,b+8);c.lineTo(x,y);c.stroke()});c.globalAlpha=1;
+    R(76,2,8,8,'#c9d3e3');for(let i=0;i<4;i++)R(77+i*2,3+i*2,1,1,'#ffffff');R(79,0,2,2,'#888');stars(c,10,50)},
+  bar(c){const R=px(c);R(0,0,160,90,'#2a1c16');R(0,10,160,30,'#3a2a20');for(let i=0;i<14;i++){R(8+i*11,14,5,10,['#57c27a','#e85d75','#f2c14e','#7fb2ff'][i%4]);R(9+i*11,12,3,2,'#d6dbe6')}R(0,26,160,2,'#6e4a28');
+    for(let i=0;i<6;i++){c.fillStyle='rgba(255,207,122,.25)';c.beginPath();c.arc(14+i*26,6,6,0,7);c.fill();R(13+i*26,4,3,4,'#ffcf7a')}
+    R(0,62,160,6,'#8a5a2b');R(0,68,160,22,'#4a3020');R(0,62,160,1,'#c08552');R(120,52,3,10,'#d6dbe6');R(119,50,5,3,'rgba(214,219,230,.6)')},
+  date(c){const R=px(c);R(0,0,160,62,'#1c2440');R(10,8,140,40,'#0d1326');for(let i=0;i<22;i++)R(14+(i*23)%132,30+(i*7)%16,2,2,i%2?'#f2c14e':'#ffcf7a');R(10,8,140,2,'#2f4266');R(78,8,2,40,'#2f4266');
+    R(0,62,160,28,'#2a2035');R(46,58,68,4,'#f3ecd8');R(48,62,3,12,'#6e4a28');R(109,62,3,12,'#6e4a28');R(78,52,3,6,'#f3ecd8');R(79,49,1,3,'#f2c14e');c.fillStyle='rgba(242,193,78,.2)';c.beginPath();c.arc(79,50,8,0,7);c.fill();R(60,54,6,4,'#e85d75');R(96,54,6,4,'#e85d75')},
+  rooftop(c){const R=px(c);bands(c,['#0d1120','#141a35','#1c2244'],62);stars(c,16,30);
+    [[0,34,14,28],[16,28,10,34],[28,40,18,22],[48,24,12,38],[62,36,16,26],[80,30,10,32],[92,20,14,42],[108,38,18,24],[128,26,12,36],[142,34,18,28]].forEach(([x,y,w,h])=>{R(x,y,w,h,'#2b3352');for(let j=y+3;j<y+h-2;j+=5)for(let i=x+2;i<x+w-2;i+=4)if((i*j)%3)R(i,j,2,2,'#ffcf7a')});
+    R(0,62,160,28,'#3a3f52');R(0,60,160,2,'#888');for(let x=0;x<160;x+=8){R(x,48+Math.round(Math.sin(x/12)*2),2,2,['#f2c14e','#ff7aa2','#3fd0c9'][x/8%3|0])}},
+  beachparty(c){const R=px(c);bands(c,['#120f2a','#1d1840','#2a2050'],40);stars(c,14,34);R(0,40,160,14,'#1f3d6e');for(let x=0;x<160;x+=12)R(x,46,6,1,'#5a8ac8');R(0,54,160,36,'#8a7458');
+    c.fillStyle='rgba(255,159,67,.25)';c.beginPath();c.arc(128,66,22,0,7);c.fill();R(122,70,14,3,'#6e4a28');R(126,62,6,8,'#ff9f43');R(127,58,4,5,'#f2c14e');R(128,55,2,3,'#ffe9a8')},
+  lagoon(c){const R=px(c);bands(c,['#9fd3ff','#b8e0ff','#d6ecff'],40);c.fillStyle='#fff3c4';c.beginPath();c.arc(130,16,8,0,7);c.fill();R(0,40,160,50,'#2e6fa8');for(let y=46;y<90;y+=6)for(let x=(y%12);x<160;x+=18)R(x,y,6,1,'#5a9ad6');
+    R(20,58,90,4,'#8a5a2b');for(let x=24;x<110;x+=14)R(x,62,2,14,'#6e4a28');R(0,36,40,6,'#3e9a5a');R(140,34,20,8,'#3e9a5a')},
+  seafish(c){const R=px(c);bands(c,['#7fb2ff','#9fc6ff','#bcd8ff'],40);R(0,40,160,50,'#1f5fa0');for(let y=44;y<90;y+=6)for(let x=(y%10);x<160;x+=16)R(x,y,6,1,'#4f8ad0');
+    R(30,56,80,8,'#f3ecd8');R(34,64,72,4,'#c9d3e3');R(40,48,30,8,'#e8e2d0');R(44,50,6,4,'#7fb2ff');R(120,46,14,4,'#2b5a8a');R(132,42,6,3,'#2b5a8a');R(118,48,4,2,'#2b5a8a')},
+  kenya(c){const R=px(c);bands(c,['#ffb35c','#ffc77a','#ffd994'],50);c.fillStyle='#fff0c4';c.beginPath();c.arc(40,30,10,0,7);c.fill();R(0,50,160,40,'#d6a64a');for(let x=0;x<160;x+=6)R(x,50,2,3,'#b88a34');
+    R(110,30,3,22,'#4a3020');R(98,26,28,6,'#3e7a3a');R(94,30,36,3,'#3e7a3a');
+    const G='#e8a33c',D='#7a4a20';R(130,38,8,10,G);R(136,20,3,20,G);R(135,18,5,4,G);R(131,48,2,8,G);R(136,48,2,8,G);R(131,40,2,2,D);R(134,44,2,2,D);R(137,26,1,2,D);R(137,32,1,2,D);
+    for(let i=0;i<9;i++)R(10+i*9,58+(i%2)*3,6,3,'#3a2a20')},
+  redsea(c){const R=px(c);bands(c,['#0e5fa8','#0c4f8e','#0a4076','#08325e'],90);for(let i=0;i<12;i++)R((i*31)%160,(i*17)%60,1,2,'rgba(255,255,255,.35)');
+    R(0,78,160,12,'#d8c08a');const cor=['#ff7aa2','#ff9f43','#9b7bff','#f2c14e'];for(let i=0;i<8;i++){const x=6+i*20;R(x,64,3,14,cor[i%4]);R(x-3,66,3,2,cor[i%4]);R(x+3,62,3,2,cor[i%4]);R(x-3,60,2,6,cor[i%4]);R(x+5,58,2,6,cor[i%4])}
+    [[30,20],[46,26],[120,18],[132,30]].forEach(([x,y])=>{R(x,y,6,4,'#ff9f43');R(x+2,y,1,4,'#ffffff');R(x-2,y+1,2,2,'#ff9f43')})},
+  paris(c){const R=px(c);bands(c,['#bcd8ff','#d6e6ff','#f0e6ff'],62);R(0,62,160,28,'#b8a88a');for(let x=0;x<160;x+=10)R(x,62,1,28,'#a09070');
+    const T='#6b5a4a';R(116,6,2,8,T);R(114,14,6,10,T);R(112,24,10,4,T);R(110,28,14,10,T);R(106,38,22,4,T);R(104,42,6,20,T);R(124,42,6,20,T);R(110,46,14,3,T);R(112,49,10,6,'#d6e6ff');
+    R(20,40,30,22,'#e8e2d0');R(20,36,30,4,'#7d6d58');for(let i=0;i<3;i++)R(24+i*9,44,5,7,'#7fb2ff')},
+  italy(c){const R=px(c);bands(c,['#9fd3ff','#c4e4ff','#ffe9c4'],62);R(0,62,160,28,'#c9a46a');const C='#d4a373',D='#8a5a2b';
+    R(70,14,86,48,C);for(let row=0;row<3;row++)for(let i=0;i<8;i++)R(74+i*10,18+row*15,6,9,D);R(70,14,86,2,'#e9c497');R(140,8,16,6,C);for(let i=0;i<2;i++)R(142+i*7,9,4,4,D);
+    R(14,30,24,32,'#e8e2d0');R(14,26,24,4,'#e85d75');R(18,34,6,6,'#57c27a');R(28,34,6,6,'#f3ecd8')},
+  egypt(c){const R=px(c);bands(c,['#ffb35c','#ffc77a','#ffe0a3'],56);c.fillStyle='#fff3c4';c.beginPath();c.arc(130,18,9,0,7);c.fill();R(0,56,160,34,'#e0b46a');
+    const pyr=(x,b,h,col)=>{for(let j=0;j<h;j++)R(x-j,b-h+j,j*2+1,1,col)};pyr(46,56,30,'#c9984a');pyr(92,56,24,'#d6a85a');pyr(130,56,14,'#c9984a');for(let j=0;j<30;j+=3)R(16+j,26+j,1,1,'#a87a34')},
+  office(c){const R=px(c);R(0,0,160,62,'#4d5b78');R(0,62,160,28,'#3a3f52');R(98,8,46,30,'#9fd3ff');R(10,52,70,4,'#9b6b3d');R(34,38,24,15,'#1c2433');R(36,40,20,11,'#7fb2ff')},
+  party(c){const R=px(c);R(0,0,160,62,'#5a3a48');R(0,62,160,28,'#8a5a3c');for(let x=0;x<160;x+=16)R(x,62,1,28,'#7a4a30');R(0,9,160,1,'#3a2a30');
+    for(let x=4;x<160;x+=10)R(x,9+Math.round(Math.sin(x/9)*2),2,2,['#f2c14e','#ff7aa2','#3fd0c9'][x%3]);
+    R(120,36,38,16,'#3fd0c9');R(120,32,38,6,'#2fb0a9');R(118,34,4,18,'#2fb0a9');R(156,34,4,18,'#2fb0a9');
+    R(4,30,12,22,'#57c27a');R(8,52,4,10,'#6e4a28');
+    R(18,58,32,4,'#c08552');R(22,50,22,8,'#2b2b2b');R(24,50,18,3,'#e83a2a');R(27,49,3,2,'#c08552');R(34,48,3,3,'#d4a373');R(39,49,3,2,'#c08552');
+    R(28,40,1,7,'rgba(255,255,255,.4)');R(33,38,1,9,'rgba(255,255,255,.4)');R(38,41,1,6,'rgba(255,255,255,.4)')},
+  market(c){const R=px(c);R(0,0,160,50,'#ffcf7a');R(0,50,160,40,'#c99a62');const cols=['#e85d75','#3fd0c9','#f2c14e','#57c27a','#9b7bff'];
+    for(let i=0;i<5;i++){const x=4+i*32;for(let k=0;k<4;k++)R(x+k*7,18,7,8,cols[(i+k)%5]);R(x,26,28,2,'#6e4a28');R(x+1,28,2,24,'#6e4a28');R(x+25,28,2,24,'#6e4a28')}},
+};
+function scene(cv,bg,cast){cv.width=160;cv.height=90;const c=cv.getContext('2d');c.imageSmoothingEnabled=false;BG[bg](c);cast&&cast(c)}
+
+/* 每个选项的画面 */
+function drawPick(cv,day,opt){
+  scene(cv,opt.bg,c=>{
+    if(opt.k==='abs'){
+      const cast=opt.cast||[];
+      if(opt.crowd){crowd(c);trio(c,cast[0],cast[1],day===6);return}
+      if(cast.length>=2){trio(c,cast[0],cast[1],false);return}
+      person(c,96,31,{...guyLook(cast[0]),reachL:true});
+      person(c,80,32,{...JUN,dress:'#e85d75',blush:true});
+      heart(c,88,14);heart(c,96,8,'#ffb3c9');
+    }else if(opt.k==='slack'){
+      if(opt.bg==='lagoon'){person(c,60,28,{...JUN,hat:'#e8c98a'});line(c,75,30,104,10,'#d6dbe6');line(c,104,10,108,52,'rgba(255,255,255,.7)');px(c)(106,52,4,2,'#ff7aa2')}
+      else if(opt.bg==='seafish'){person(c,52,26,{...JUN,hat:'#e8c98a'});line(c,67,28,100,8,'#d6dbe6');line(c,100,8,124,44,'rgba(255,255,255,.7)')}
+      else if(opt.bg==='redsea'){person(c,72,30,{...JUN,mask:true,top:'#2b3550',pants:'#2b3550'});for(let i=0;i<4;i++)px(c)(84+i*3,26-i*5,2,2,'rgba(255,255,255,.6)')}
+      else if(opt.bg==='egypt'){const R=px(c);R(58,52,24,10,'#c08552');R(78,44,8,10,'#c08552');R(82,40,6,6,'#c08552');R(60,62,3,10,'#8a5a2b');R(76,62,3,10,'#8a5a2b');person(c,60,24,{...JUN,hat:'#e8c98a',shades:true})}
+      else if(opt.bg==='kenya'){person(c,64,32,{...JUN,hat:'#e8c98a'});px(c)(76,40,6,4,'#1c2433');px(c)(82,41,2,2,'#7fb2ff')}
+      else{person(c,62,32,{...JUN,shades:true,wave:true});box(c,82,54,10,8,'#e85d75');px(c)(86,52,2,2,'#1c2433')}
+    }else{
+      const R=px(c);
+      if(opt.bg==='office'){R(38,42,3,8,'#57c27a');R(43,45,3,5,'#f2c14e');R(48,40,3,10,'#e85d75');person(c,62,32,{...JUN,top:'#57c27a',wave:day===6})}
+      else if(opt.bg==='night'){c.fillStyle='rgba(127,178,255,.25)';c.beginPath();c.arc(108,50,14,0,7);c.fill();R(102,52,14,2,'#9aa6bd');R(104,44,10,8,'#7fb2ff');person(c,86,32,{...JUN,top:'#57c27a'})}
+      else person(c,86,32,{...JUN,top:'#57c27a',wave:day===6});
+    }
+  });
+}
+function drawIcon(cv,k,bg){scene(cv,bg,c=>{const R=px(c);c.fillStyle='rgba(20,26,43,.35)';c.fillRect(0,0,160,90);
+  if(k==='wh'){box(c,60,50,18,14);box(c,80,50,18,14);box(c,70,36,18,14)}
+  if(k==='slack'){R(64,40,32,4,'#f3ecd8');R(78,44,4,22,'#f3ecd8');R(70,64,20,3,'#f3ecd8')}
+  if(k==='abs'){heart(c,70,34);heart(c,82,42,'#ffb3c9');heart(c,60,46,'#ffb3c9')}
+})}
+
+/* 结算 */
+const ENDINGS={
+  abs:{title:'腹肌终结者',cls:'abs',text:n=>`七天里，你有 ${n} 个晚上泡在夜店、酒吧和约会里。本地男大、意大利游客、巴西冲浪手、法国摄影师，一个都没错过。最后 18 个男模站成两排，你在 C 位左拥右抱。尼日利亚仓的货发没发完不重要，重要的是整个拉各斯的腹肌都记住了你。伟子哥听说以后，连夜办了一张健身卡，第二天就没再去过。`},
+  wh:{title:'东西非物流女王',cls:'',text:n=>`七天里你有 ${n} 天在盯数据。柜子追到了，呆滞清掉了，业务也被你治得服服帖帖。传音东西非物流从此流传着艺术家的传说。伟子哥说以后仓库就交给你了，他负责吃。`},
+  slack:{title:'带薪环球旅行家',cls:'slack',text:n=>`七天里你有 ${n} 天不在仓库。护照上多了好几个章，鱼也钓了不少。路上还跟好几个大叔聊出了菌子餐厅的投资意向，名片收了一叠。伟子哥只在朋友圈里见过你，每条都点了赞，每条都评论了“带我”。`},
+  mix:{title:'拉各斯平衡大师',cls:'',text:()=>`工作、玩耍、腹肌，你一样都没落下。顺便把伟子哥气了整整七天。这才是成年人的终极形态。`},
+};
+function ending(){const s=S.stats;if(s.abs>=4)return 'abs';const top=Object.entries(s).sort((a,b)=>b[1]-a[1])[0];return top[1]>=4?top[0]:'mix'}
+function drawEnding(cv,key){
+  cv.width=160;cv.height=90;const c=cv.getContext('2d');c.imageSmoothingEnabled=false;const R=px(c);
+  if(key==='abs'){
+    R(0,0,160,90,'#2a1838');R(0,62,160,28,'#3b2350');for(let x=0;x<160;x+=8)R(x,62,4,1,'#5a3a78');
+    R(0,0,12,62,'#8a1f3d');R(148,0,12,62,'#8a1f3d');for(let y=0;y<62;y+=6){R(4,y,1,4,'#6a1530');R(154,y,1,4,'#6a1530')}
+    c.fillStyle='rgba(255,233,168,.16)';c.beginPath();c.moveTo(64,0);c.lineTo(96,0);c.lineTo(112,64);c.lineTo(48,64);c.fill();
+    crowd(c);trio(c,'Luca','Emeka',true);
+    [[24,12],[52,6],[100,8],[128,14],[78,4],[40,20],[118,22]].forEach(([x,y],i)=>heart(c,x,y,i%2?'#ffb3c9':'#ff7aa2'));
+    stars(c,18,55);
+  }else if(key==='wh'){BG.warehouse(c);person(c,104,33,WEIZI);for(let i=0;i<3;i++)box(c,70+i*10,54,10,8);box(c,75,46,10,8);box(c,85,46,10,8);box(c,80,38,10,8);person(c,78,6,{...JUN,top:'#57c27a',crown:true,wave:true});heart(c,60,20,'#f2c14e');heart(c,104,24,'#f2c14e')}
+  else if(key==='slack'){BG.paris(c);person(c,62,32,{...JUN,shades:true,wave:true,hat:'#e8c98a'});box(c,80,52,12,10,'#e85d75');R(84,50,4,2,'#1c2433');[[30,10,'#57c27a'],[44,18,'#f2c14e'],[18,22,'#ff9f43']].forEach(([x,y,col])=>{R(x,y,10,7,col);R(x+2,y+2,6,3,'rgba(255,255,255,.5)')})}
+  else{BG.market(c);person(c,72,31,{...JUN,wave:true});person(c,96,32,WEIZI);box(c,52,40,8,6);heart(c,96,20)}
+}
+
+/* ---------- 渲染 ---------- */
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+function hud(){
+  const live=S.phase==='choose'||S.phase==='result';
+  $('days').innerHTML=Array.from({length:7},(_,i)=>`<i class="${i<S.picks.length?'done':''}${live&&i===S.day&&i>=S.picks.length?' now':''}" title="第${i+1}天"></i>`).join('');
+  $('mWh').textContent=S.stats.wh;$('mSl').textContent=S.stats.slack;$('mAb').textContent=S.stats.abs;
+  $('diaryCount').textContent=`${S.picks.length}/7`;
+  $('diary').innerHTML=DAYS.map((D,i)=>{const p=S.picks.find(x=>x.day===i);
+    if(p){const o=D.opts[p.i];const K=KIND[o.k];return `<li><span class="dn">第${i+1}天</span><span class="tag ${K.cls}">${K.label}</span><span class="tx"><b>${o.t}</b> <span>${o.s}</span></span></li>`}
+    const now=live&&i===S.day;return `<li class="todo${now?' now':''}"><span class="dn">第${i+1}天</span><span></span><span class="tx">${now?'今天还没决定':'还没到'}</span></li>`}).join('');
+}
+function render(){
+  hud();
+  ({title:renderTitle,choose:renderChoose,result:renderResult,end:renderEnd})[S.phase]();
+}
+function renderTitle(){
+  stage.innerHTML=`<div class="eyebrow">传音 · 尼日利亚 · 拉各斯仓库</div>
+    <h1>艺术家俊丹的拉各斯七日</h1>
+    <canvas class="scene" id="cvTitle" aria-label="俊丹站在拉各斯的仓库里"></canvas>
+    <p class="lead">你是物流部负责东西非业务的艺术家俊丹：云南人，重庆读的大学，无辣不欢，梦想是把云南菌子餐厅开到非洲。事业上爱找成熟大叔聊商业、谈投资，恋爱只找腹肌小哥。这次去拉各斯出差七天。领导伟子哥已经在门口等你了，手里还拿着一杯奶茶。每天早上抽一张卡，决定今天干点啥。七天后，拉各斯会给你一个称号。</p>
+    <button class="btn" id="go">上班去</button>`;
+  scene($('cvTitle'),'warehouse',c=>{person(c,64,32,{...JUN,wave:true});person(c,86,32,WEIZI);heart(c,80,16,'#f2c14e')});
+  $('go').onclick=()=>{S.phase='choose';S.day=0;render();focusFirst()};
+}
+function renderChoose(){
+  const D=DAYS[S.day];
+  stage.innerHTML=`<div class="eyebrow">第 ${S.day+1} 天 · ${D.when}</div>
+    <h2>你今天打算做啥？</h2>
+    <div class="cards" id="cards">${D.opts.map((o,i)=>`<button class="choice ${o.k}" data-i="${i}"><span class="no">${i+1}</span><canvas data-i="${i}"></canvas><span class="txt"><span class="t">${o.t}</span><span class="d">${o.d}</span></span></button>`).join('')}</div>`;
+  stage.querySelectorAll('.choice canvas').forEach(cv=>{const o=D.opts[+cv.dataset.i];drawIcon(cv,o.k,o.bg)});
+  stage.querySelectorAll('.choice').forEach(b=>b.onclick=()=>pick(+b.dataset.i,b));
+}
+function pick(i,btn){
+  if(S.phase!=='choose')return;
+  const o=DAYS[S.day].opts[i];
+  $('cards').classList.add('picked');btn.classList.add('on');
+  S.picks.push({day:S.day,i});S.stats[o.k]++;S.phase='result';
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(()=>{render();const b=$('next');b&&b.focus({preventScroll:true})},reduce?0:420);
+}
+function renderResult(){
+  const p=S.picks[S.picks.length-1];const o=DAYS[p.day].opts[p.i];const K=KIND[o.k];const last=p.day===6;
+  stage.innerHTML=`<div class="result">
+    <div class="eyebrow">第 ${p.day+1} 天 · ${o.t}</div>
+    <canvas class="scene" id="cvRes" aria-label="${o.t}"></canvas>
+    <div class="tagrow"><span class="tag ${K.cls}">${K.label} +1</span></div>
+    <p>${o.r}</p>
+    <div class="wei"><canvas id="cvWei" aria-hidden="true"></canvas><div><b>伟子哥今日</b>${WEI[p.day][o.k]}</div></div>
+    <button class="btn" id="next">${last?'看看七天的结局':'睡觉，进入第 '+(p.day+2)+' 天'}</button></div>`;
+  drawPick($('cvRes'),p.day,o);drawWei($('cvWei'));
+  $('next').onclick=()=>{if(last)S.phase='end';else{S.day++;S.phase='choose'}render();focusFirst()};
+}
+function renderEnd(){
+  const key=ending();const E=ENDINGS[key];const s=S.stats;
+  const title=key==='abs'&&s.abs===7?'腹肌终结者 · 七天全勤':E.title;
+  const row=(lab,v,col)=>`<span>${lab}</span><div class="track"><i style="width:${v/7*100}%;background:${col}"></i></div><em>${v}</em>`;
+  stage.innerHTML=`<div class="result">
+    <div class="eyebrow">七日结算 · 拉各斯授予你称号</div>
+    <div class="title-badge ${E.cls}"><span>称号</span><b>${title}</b></div>
+    <canvas class="scene" id="cvEnd" aria-label="${title}"></canvas>
+    <p>${E.text(key==='mix'?0:s[key])}</p>
+    <div class="bars">${row('仓库',s.wh,'var(--leaf)')}${row('摸鱼',s.slack,'var(--sky)')}${row('腹肌',s.abs,'var(--rose)')}</div>
+    <button class="btn" id="again">再来七天</button></div>`;
+  drawEnding($('cvEnd'),key);$('diaryBox').open=true;
+  $('again').onclick=()=>{S=fresh();S.phase='choose';try{window.claude?.hot?.snapshot&&window.claude.hot.snapshot(()=>S)}catch(e){}render();focusFirst()};
+}
+function focusFirst(){const f=stage.querySelector('.choice,.btn');f&&f.focus({preventScroll:true});stage.scrollIntoView({block:'start'})}
+try{if(matchMedia('(max-width:560px)').matches)$('diaryBox').open=false}catch(e){}
+addEventListener('keydown',e=>{if(S.phase==='choose'&&['1','2','3'].includes(e.key)){const b=stage.querySelector(`.choice[data-i="${+e.key-1}"]`);b&&b.click()}});
+render();
+})();
+</script>
+
+</body>
+</html>

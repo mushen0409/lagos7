@@ -379,7 +379,7 @@ function renderTitle(){
   stage.innerHTML=`<div class="eyebrow">传音 · 尼日利亚 · 拉各斯仓库</div>
     <h1>艺术家俊丹的拉各斯七日</h1>
     <canvas class="scene" id="cvTitle" aria-label="俊丹站在拉各斯的仓库里"></canvas>
-    <p class="lead">你是物流部负责东西非业务的艺术家俊丹：云南人，重庆读的大学，无辣不欢，梦想是把云南菌子餐厅开到非洲。事业上爱找成熟大叔聊商业、谈投资，恋爱只找腹肌小哥。这次去拉各斯出差七天。领导伟子哥已经在门口等你了，手里还拿着一杯奶茶。每天早上抽一张卡，决定今天干点啥。七天后，拉各斯会给你一个称号。</p>
+    <p class="lead">艺术家俊丹要去拉各斯出差七天。领导伟子哥已经在门口等你了，手里还拿着一杯奶茶。每天早上抽一张卡，决定今天干点啥。七天后，拉各斯会给你一个称号。</p>
     <button class="btn" id="go">上班去</button>`;
   scene($('cvTitle'),'warehouse',c=>{person(c,64,32,{...JUN,wave:true});person(c,86,32,WEIZI);heart(c,80,16,'#f2c14e')});
   $('go').onclick=()=>{S.phase='choose';S.day=0;render();focusFirst()};
